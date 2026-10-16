@@ -1,0 +1,7 @@
+# Tudo em /oficial/ que não for arquivo real vai para o simulador.
+# O simulador gera os arquivos simulados e redireciona o resto para o TSE.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ /simulador/endpoint.php [L,QSA]
+</IfModule>

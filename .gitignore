@@ -1,0 +1,5 @@
+# Banco criado em tempo de execução
+simulador/dados/*.sqlite
+simulador/dados/*.sqlite-journal
+simulador/dados/*.sqlite-wal
+simulador/dados/*.sqlite-shm
