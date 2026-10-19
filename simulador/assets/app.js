@@ -125,10 +125,15 @@ function montarFormulario(form, tipo) {
             <output class="cand__pct" data-pct="${c.sqcand}">–</output>
             ${atual ? `<label class="cand__sit">Situação
               <select data-c="eleito" data-sq="${c.sqcand}">
-                <option value="auto">Automático</option><option value="s">Eleito</option><option value="n">Não eleito</option>
+                <option value="auto">Automático</option><option value="s">Eleito</option><option value="m">Matematicamente eleito</option><option value="n">Não eleito</option>
               </select></label>` : ''}
           </div>`).join('')}
       </div>
+      ${atual ? `
+      <label class="cand__sit">Em "Automático", quem já não pode ser alcançado aparece como
+        <select data-c="matematico">
+          <option value="n">Eleito</option><option value="s">Matematicamente eleito (vira Eleito na totalização final)</option>
+        </select></label>` : ''}
       <div class="linha-campos">
         <label>Brancos<input type="number" min="0" step="1" data-c="vb"></label>
         <label>Nulos<input type="number" min="0" step="1" data-c="vn"></label>
@@ -182,11 +187,12 @@ function lerFormulario(form, tipo) {
     vnt: tipo === 'atual' ? int($('[data-c="vnt"]', form)) : base.vnt,
     sni: tipo === 'atual' ? int($('[data-c="sni"]', form)) : base.sni,
     esni: tipo === 'atual' ? int($('[data-c="esni"]', form)) : base.esni,
-    vap: {}, eleito: {}, and: 'auto', tf: 'auto',
+    vap: {}, eleito: {}, matematico: !!base.matematico, and: 'auto', tf: 'auto',
   };
   $$('[data-c="vap"]', form).forEach((el) => { e.vap[el.dataset.sq] = int(el); });
   if (tipo === 'atual') {
     $$('[data-c="eleito"]', form).forEach((el) => { if (el.value !== 'auto') e.eleito[el.dataset.sq] = el.value; });
+    e.matematico = $('[data-c="matematico"]', form).value === 's';
     e.and = $('[data-c="and"]', form).value;
     e.tf = $('[data-c="tf"]', form).value;
   }
@@ -200,7 +206,7 @@ function preencherFormulario(form, tipo, e) {
   set('pct', (ts ? e.st / ts * 100 : 0).toFixed(2));
   set('faixa', Math.round(ts ? e.st / ts * 10000 : 0));
   set('vb', e.vb); set('vn', e.vn); set('vnt', e.vnt); set('sni', e.sni); set('esni', e.esni || 0);
-  set('and', e.and || 'auto'); set('tf', e.tf || 'auto');
+  set('and', e.and || 'auto'); set('tf', e.tf || 'auto'); set('matematico', e.matematico ? 's' : 'n');
   $$('[data-c="vap"]', form).forEach((el) => { el.value = e.vap[el.dataset.sq] || 0; });
   $$('[data-c="eleito"]', form).forEach((el) => { el.value = (e.eleito && e.eleito[el.dataset.sq]) || 'auto'; });
   S.sujo[tipo] = false;
@@ -343,7 +349,7 @@ function renderPublicado(d) {
     return `<div class="pub-cand${i === 0 && c.vap > 0 ? ' pub-cand--lider' : ''}">
       <div class="pub-cand__linha">
         <span class="pub-cand__nome">${esc(c.nmu)} <span class="mudo">${esc(c.partido)}</span>
-          ${c.e === 's' ? '<span class="selo selo--eleito">Eleito</span>' : c.st ? `<span class="selo">${esc(c.st)}</span>` : ''}</span>
+          ${c.e === 's' ? `<span class="selo selo--eleito">${esc(c.st || 'Eleito')}</span>` : c.st ? `<span class="selo">${esc(c.st)}</span>` : ''}</span>
         <span class="pub-cand__pct">${c.pvap}%</span>
       </div>
       <div class="barra"><div class="barra__fill" style="width:${p}%"></div></div>
@@ -764,7 +770,7 @@ $('#dlg-assistente').addEventListener('close', () => {
   const form = $('#form-' + alvo);
   const e = porPercentuais(lerAssistente(), lerFormulario(form, alvo));
   const eleito = lerFormulario(form, alvo);
-  preencherFormulario(form, alvo, { ...e, eleito: eleito.eleito, and: eleito.and, tf: eleito.tf });
+  preencherFormulario(form, alvo, { ...e, eleito: eleito.eleito, matematico: eleito.matematico, and: eleito.and, tf: eleito.tf });
   S.sujo[alvo] = true;
 });
 ['#sim-minutos', '#sim-intervalo', '#sim-curva'].forEach((s) => $(s).addEventListener('input', () => { previaSimulacao(); agendarPrevia(); }));

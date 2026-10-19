@@ -309,7 +309,7 @@ function estado_zero(string $uf): array
     foreach (candidatos($m) as $c) $vap[$c['sqcand']] = 0;
     return [
         'st' => 0, 'sni' => 0, 'esni' => 0, 'vb' => 0, 'vn' => 0, 'vnt' => 0, 'vap' => $vap,
-        'eleito' => [], 'and' => 'auto', 'tf' => 'auto',
+        'eleito' => [], 'matematico' => false, 'and' => 'auto', 'tf' => 'auto',
         'idg' => (int) $m['idg'], 'quando' => null,
     ];
 }
@@ -344,8 +344,9 @@ function sanitizar_estado(string $uf, $entrada): array
     foreach ($e['vap'] as $sq => $_) $e['vap'][$sq] = $int($entrada['vap'][$sq] ?? 0);
     foreach ($e['vap'] as $sq => $_) {
         $x = $entrada['eleito'][$sq] ?? 'auto';
-        if ($x === 's' || $x === 'n') $e['eleito'][$sq] = $x;
+        if ($x === 's' || $x === 'm' || $x === 'n') $e['eleito'][$sq] = $x;
     }
+    $e['matematico'] = ($entrada['matematico'] ?? false) === true;
     $and = $entrada['and'] ?? 'auto';
     $e['and'] = in_array($and, ['auto', 'n', 'p', 'f'], true) ? $and : 'auto';
     $tf = $entrada['tf'] ?? 'auto';
@@ -387,16 +388,21 @@ function calcular(string $uf, array $est): array
     $decidido = $lider !== null && $vap[$lider] > 0 && $vap[$lider] > $segundo + $restante;
     $algumVoto = array_sum($vap) > 0;
 
+    $and = $est['and'] !== 'auto' ? $est['and'] : ($st === 0 ? 'n' : ($st < $ts ? 'p' : 'f'));
+    $tf = $est['tf'] !== 'auto' ? $est['tf'] : ($st >= $ts ? 's' : 'n');
+    // Com a opção ligada, o líder inalcançável aparece como "Matematicamente eleito" até a totalização final.
+    $rotuloAuto = !empty($est['matematico']) && $tf !== 's' ? 'Matematicamente eleito' : 'Eleito';
+
     $res = [];
     foreach ($ordem as $i => $c) {
         $sq = $c['sqcand'];
         $manual = $est['eleito'][$sq] ?? 'auto';
-        if ($manual === 's' || $manual === 'n') {
-            $eleito = $manual;
-            $situacao = $manual === 's' ? 'Eleito' : 'Não eleito';
+        if ($manual === 's' || $manual === 'm' || $manual === 'n') {
+            $eleito = $manual === 'n' ? 'n' : 's';
+            $situacao = ['s' => 'Eleito', 'm' => 'Matematicamente eleito', 'n' => 'Não eleito'][$manual];
         } elseif ($decidido) {
             $eleito = $sq === $lider ? 's' : 'n';
-            $situacao = $sq === $lider ? 'Eleito' : 'Não eleito';
+            $situacao = $sq === $lider ? $rotuloAuto : 'Não eleito';
         } else {
             $eleito = 'n';
             $situacao = '';
@@ -406,9 +412,6 @@ function calcular(string $uf, array $est): array
             'e' => $eleito, 'st' => $situacao, 'seq' => $algumVoto ? $i + 1 : $c['seq'],
         ];
     }
-
-    $and = $est['and'] !== 'auto' ? $est['and'] : ($st === 0 ? 'n' : ($st < $ts ? 'p' : 'f'));
-    $tf = $est['tf'] !== 'auto' ? $est['tf'] : ($st >= $ts ? 's' : 'n');
 
     return ['ts' => $ts, 'te' => $te, 'st' => $st, 's' => $s, 'e' => $e, 'v' => $v, 'cand' => $res,
         'and' => $and, 'tf' => $tf, 'decidido' => $decidido];
@@ -477,6 +480,7 @@ function preparar_simulacao(string $uf, array $origem, $destino, $minutos, $inte
     $dest['and'] = 'auto';
     $dest['tf'] = 'auto';
     $dest['eleito'] = [];
+    $dest['matematico'] = !empty($origem['matematico']);
     $m = modelo($uf);
     $nomes = array_column(candidatos($m), 'nmu', 'sqcand');
     if ($dest['st'] <= $origem['st']) throw new ErroUsuario('O % apurado do destino precisa ser maior que o que está no ar agora.');

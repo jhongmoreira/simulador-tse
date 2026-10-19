@@ -183,7 +183,7 @@ function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8')
 </dialog>
 
 <div id="toast" class="toast" hidden></div>
-<script src="assets/app.js?v=1"></script>
+<script src="assets/app.js?v=2"></script>
 </body>
 <?php endif; ?>
 </html>
