@@ -822,6 +822,21 @@ function definir(array &$a, string $k, $v): void
     if (array_key_exists($k, $a)) $a[$k] = (string) $v;
 }
 
+// Grava $k logo depois de $ref, mantendo a ordem dos campos. Se $k já existir, só troca o valor.
+function inserir_depois(array $a, string $ref, string $k, $v): array
+{
+    if (array_key_exists($k, $a) || !array_key_exists($ref, $a)) {
+        $a[$k] = (string) $v;
+        return $a;
+    }
+    $novo = [];
+    foreach ($a as $chave => $x) {
+        $novo[$chave] = $x;
+        if ($chave === $ref) $novo[$k] = (string) $v;
+    }
+    return $novo;
+}
+
 function preencher(array $alvo, array $valores): array
 {
     foreach ($valores as $k => $v) definir($alvo, $k, $v);
@@ -847,6 +862,11 @@ function montar_uf(string $uf, array $est): array
     definir($m, 'ht', $ht);
     definir($m, 'tf', $r['tf']);
     definir($m, 'and', $r['and']);
+    // "md" = "e": eleição matematicamente definida (é o campo que o site lê para mostrar o aviso).
+    // Os modelos do TSE não trazem o campo, então ele só entra no arquivo enquanto houver alguém "Matematicamente eleito".
+    if (in_array('Matematicamente eleito', array_column($r['cand'], 'st'), true)) {
+        $m = inserir_depois($m, 'and', 'md', 'e');
+    }
 
     foreach ($m['carg'][0]['agr'] as &$agr) {
         $somaAgr = 0;
